@@ -44,7 +44,7 @@ oci setup config
 
 The command provides references for where to find the information you need to set it up and walks 
 you step-by-step through the process. On a Linux system the default location for the OCI CLI 
-configuration is `$HOME\.oci\config`. You should end up with something that looks like:
+configuration is `$HOME/.oci/config`. You should end up with something that looks like:
 
 ```ignorelang
 [DEFAULT]
@@ -66,14 +66,14 @@ key_file=~/.oci/<rest_of_api_key_path>
 region=uk-london-1
 ```
 
-To test that your `oci` CLI is setup and working with the DEFAULT profile you can try running:
+To test that your `oci` CLI is setup and working with the DEFAULT profile and API key
+authentication you can try running:
 
 ```shell
 oci iam region list
 ```
 
-if you've got your DEFAULT profile properly setup with API key authentication it should return the 
-list of available OCI regions e.g:
+If everything works that should return the list of available OCI regions e.g:
 
 ```ignorelang
 $ oci iam region list
@@ -229,7 +229,7 @@ of our tenancy, gives it the name `example_vcn` so we can refer to it in the res
 tells OCI that we're planning to use IP addresses from the 10.0.0.0/16 
 [CIDR block](https://erikberg.com/notes/networks.html).
 
-Next we need to create a subnet resource called "example_subnet":
+Next we'll create a subnet resource called `example_subnet`:
 
 ```hcl
 resource "oci_core_subnet" "example_subnet" {
@@ -246,7 +246,7 @@ this subnet a private subnet by specifying `prohibit_public_ip_on_vnic = true`. 
 created in this subnet won't be accessible from The Internet.
 
 In order to create the subnet we have to provide the OCID of the VCN we want to subnet to be a 
-part of. To do that we're using an _attribute reference_ to get the `id` attribute that the 
+part of. To do that we're using an _attribute reference_ to get the `id` attribute of the
 `oci_core_vcn` resource called `example_vcn` which we're going to create. The `id` attribute
 contains the OCID of the created VCN. The book doesn't cover attribute references until the section
 "Deploying a Cluster of Web Servers" later in Chapter 2.
@@ -295,3 +295,8 @@ subnet we're going to create. Currently I've also specified `assign_public_ip = 
 of an oddity I discovered. The documentation for `oci_core_instance` says that this should 
 default to false if the subnet is a private subnet (`prohibit_public_ip_on_vnic = true`) but I 
 found I couldn't create the instance unless I specified `assign_public_ip = false`.
+
+Finally, I'm also specifying `preserve_boot_volume = false` so when we destroy this instance it 
+will also terminate the boot volume associated with it.
+
+For convenience, the complete configuration is in [main.tf](01-deploying-single-server/main.tf).
