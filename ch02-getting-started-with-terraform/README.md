@@ -17,6 +17,12 @@ roles and access rights for specific tasks. See
 [Account and Access Concepts](https://docs.oracle.com/en-us/iaas/Content/GSG/Concepts/concepts-account.htm)
 to get started with this.
 
+One thing you'll come across repeatedly when dealing with OCI are
+[OCIDs](https://docs.oracle.com/en-us/iaas/Content/GSG/Concepts/concepts-account.htm). An OCID is 
+the unique identifier that OCI assigns to many of the resources you can create in OCI. Different types of 
+OCID have 
+[different formats](https://docs.oracle.com/en-us/iaas/Content/General/Concepts/identifiers.htm).
+
 Once you've got your OCI tenancy setup, you'll also want to install the OCI [command line 
 interface](https://docs.oracle.com/en-us/iaas/Content/API/Concepts/cliconcepts.htm) tool `oci`on
 the machine that you'll be using for practice. See the 
@@ -49,13 +55,13 @@ key_file=<THE_PATH_TO_YOUR_API_KEY_PRIVATE_KEY>
 region=<YOUR_HOME_REGION_NAME>
 ```
 
-or a bit more specifically:
+or a bit more specifically, if your home region is "uk-london-1":
 
 ```ignorelang
 [DEFAULT]
 tenancy=ocid1.tenancy.oc1.<rest_of_tenancy_ocid>
 user=ocid1.user.oc1.<rest_of_user_ocid>
-fingerprint=99:<rest_of_api_key_fingerprint>
+fingerprint=FF:<rest_of_api_key_fingerprint>
 key_file=~/.oci/<rest_of_api_key_path>
 region=uk-london-1
 ```
@@ -189,3 +195,103 @@ Global options (use these before the subcommand, if any):
   -version      An alias for the "version" subcommand.
 $
 ```
+
+## Deploying a Single Server
+
+To setup the OCI provider to use API key authentication and to get the other configuration it 
+needs from the DEFAULT profile in your OCL CLI config add the following to `main.tf`:
+
+```hcl
+provider "oci" {
+  auth = "APIKey"
+  config_file_profile = "DEFAULT"
+}
+```
+
+We've specified the region to deploy to in our DEFAULT profile, so we don't need to configure it 
+here.
+
+The first resource we need is to configure is a VCN:
+
+```hcl
+resource "oci_core_vcn" "example_vcn" {
+  compartment_id = "<tenancy_ocid>"
+  cidr_blocks = ["10.0.0.0/16"]
+}
+```
+
+Replace `<tenancy_ocid>` with the OCID of your tenancy. You need to do this for the other 
+resources below as well.
+
+This creates the VCN in the root
+[compartment](https://docs.oracle.com/en-us/iaas/Content/GSG/Concepts/concepts-account.htm#concepts-access)
+of our tenancy, gives it the name `example_vcn` so we can refer to it in the rest of code, and
+tells OCI that we're planning to use IP addresses from the 10.0.0.0/16 
+[CIDR block](https://erikberg.com/notes/networks.html).
+
+Next we need to create a subnet resource called "example_subnet":
+
+```hcl
+resource "oci_core_subnet" "example_subnet" {
+  cidr_block = "10.0.1.0/24"
+  compartment_id = "<tenancy_ocid>"
+  vcn_id = oci_core_vcn.example_vcn.id
+  prohibit_public_ip_on_vnic = true # Make this a private subnet
+}
+```
+
+This subnet is allocated the block of addresses 10.0.1.0/24 which is a valid subnet of 10.0.0.0/16.
+We're also creating this subnet in the root compartment of the tenancy. For safety, we're making 
+this subnet a private subnet by specifying `prohibit_public_ip_on_vnic = true`. This means resources 
+created in this subnet won't be accessible from The Internet.
+
+In order to create the subnet we have to provide the OCID of the VCN we want to subnet to be a 
+part of. To do that we're using an _attribute reference_ to get the `id` attribute that the 
+`oci_core_vcn` resource called `example_vcn` which we're going to create. The `id` attribute
+contains the OCID of the created VCN. The book doesn't cover attribute references until the section
+"Deploying a Cluster of Web Servers" later in Chapter 2.
+
+Now we can finally get to creating the compute instance resource that we need to deploy the server:
+
+```hcl
+resource "oci_core_instance" "example_instance" {
+  availability_domain = "Lguh:UK-LONDON-1-AD-3"
+  compartment_id = "<tenancy_ocid>"
+  shape = "VM.Standard.E2.1.Micro"
+  source_details {
+    source_type = "image"
+    # Oracle-Linux-8.10-2024.07.31-0 in uk-london-1
+    source_id = "ocid1.image.oc1.uk-london-1.aaaaaaaay6agryw3wg52ruxw56zns3azgwgki3ireaugsuhmfvfnjplxsrfa"
+  }
+  create_vnic_details {
+    subnet_id = oci_core_subnet.example_subnet.id
+    assign_public_ip = false # Shouldn't need this because prohibit_public_ip_on_vnic = true in
+                             # subnet
+  }
+  preserve_boot_volume = false
+}
+```
+
+We have to tell OCI which availability domain we want to deploy the image in. I logged onto the 
+OCI console and selected "Compute / Instances" from the hamburger menu and then clicked the 
+"Create instance" button to see which availability domain was _Always Free-eligible_. In my case 
+that was "Lguh:UK-LONDON-1-AD-3" in my home region of "uk-london-1". We then tell OCI to create the 
+instance in the root compartment of the tenancy as we've done for the VCN and subnet.
+
+We then have to tell OCI which type of instance to create. Here I've specified a VM of _shape_ 
+"VM.Standard.E2.1.Micro" which is an x86_64 architecture VM with an AMD processor and 1 GiB of 
+memory. This instance shape is eligible for the OCI Free Tier so we won't be charged for it if 
+we remain within the Free Tier limits for that shape.
+
+In the `source_details` section, we're telling OCI which operating system we want the instance 
+to run. Setting `source_type = "image"` specifies that we're going to provide the OCID of the 
+image that we want to use to provision this VM. In my case I'm providing the OCID of the Oracle 
+Linux 8 image "Oracle-Linux-8.10-2024.07.31-0" in my home region of "uk-london-1".
+
+In the `create_vnic_details` section, we're telling OCI which subnet we want the primary VNIC of 
+the host to be in. Again, we're using an attribute reference to get the `id` attribute of the
+`oci_core_subnet` resource called `example_subnet`. This attribute contains the OCID of the 
+subnet we're going to create. Currently I've also specified `assign_public_ip = false` because 
+of an oddity I discovered. The documentation for `oci_core_instance` says that this should 
+default to false if the subnet is a private subnet (`prohibit_public_ip_on_vnic = true`) but I 
+found I couldn't create the instance unless I specified `assign_public_ip = false`.
