@@ -1,6 +1,15 @@
 # Chapter 2 - Getting Started with Terraform
 
-## Setting Up Your ~~AWS~~ OCI Account
+* [Setting Up Your ~~AWS~~ OCI Account](https://github.com/windscale-stephen/terraform-up-and-running-3rd-edition-oci-notes/blob/main/ch02-getting-started-with-terraform/README.md#setting-up-your-aws-oci-account)
+  * [A Note On ~~Default Virtual Private Clouds~~ Virtual Cloud Networks](https://github.com/windscale-stephen/terraform-up-and-running-3rd-edition-oci-notes/blob/main/ch02-getting-started-with-terraform/README.md#a-note-on-default-virtual-private-clouds-virtual-cloud-networks)
+* [Installing ~~Terraform~~ OpenTofu]()
+* [Deploying a Single Server](https://github.com/windscale-stephen/terraform-up-and-running-3rd-edition-oci-notes/blob/main/ch02-getting-started-with-terraform/README.md#deploying-a-single-server)
+* [Deploying a Single Web Server]()
+* [Deploying a Configurable Web Server]()
+* [Deploying a Cluster of Web Servers]()
+* [Deploying a Load Balancer]()
+* [Cleanup]()
+* [Conclusion]()
 
 [Oracle Cloud Infrastructure](https://www.oracle.com/cloud/) (OCI), similarly to Amazon Web Services
 (AWS), has a way for you to try out its services. If you go to [https://www.oracle.com/cloud/free/](https://www.oracle.com/cloud/free/)
@@ -114,7 +123,7 @@ VCNs are region specific resources, so you need to define at least one VCN for e
 want to deploy infrastructure into. A VCN does however span all the availability domains in each 
 region.
 
-## Installing OpenTofu
+## Installing ~~Terraform~~ OpenTofu
 
 The instructions for installing OpenTofu can be found at
 [https://opentofu.org/docs/intro/install/](https://opentofu.org/docs/intro/install/). On my 
@@ -872,3 +881,15 @@ $
 
 If we change our mind and decide we want this infrastructure recreated, then it's a simple case
 of running `tofu apply` again.
+
+## Deploying a Single Web Server
+
+## Deploying a Configurable Web Server
+
+## Deploying a Cluster of Web Servers
+
+## Deploying a Load Balancer
+
+## Cleanup
+
+## Conclusion
