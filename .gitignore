@@ -46,3 +46,14 @@ flycheck_*.el
 
 # network security
 /network-security.data
+
+# My opentofu files
+mine/
+
+# Intellij files
+.idea/
+
+# OpenTofu files
+.terraform
+*.tfstate
+*.tfstate.backup
