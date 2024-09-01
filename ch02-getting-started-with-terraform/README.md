@@ -300,3 +300,575 @@ Finally, I'm also specifying `preserve_boot_volume = false` so when we destroy t
 will also terminate the boot volume associated with it.
 
 For convenience, the complete configuration is in [main.tf](01-deploying-single-server/main.tf).
+
+Once you have your `main.tf` file setup, go to the directory where you created it in a terminal
+and run the `tofu init` command. You should see output similar to the following:
+
+```ignorelang
+$ tofu init
+
+Initializing the backend...
+
+Initializing provider plugins...
+- Finding latest version of hashicorp/oci...
+- Installing hashicorp/oci v5.36.0...
+- Installed hashicorp/oci v5.36.0 (signed, key ID 1533A49284137CEB)
+
+Providers are signed by their developers.
+If you'd like to know more about provider signing, you can read about it here:
+https://opentofu.org/docs/cli/plugins/signing/
+
+OpenTofu has created a lock file .terraform.lock.hcl to record the provider
+selections it made above. Include this file in your version control repository
+so that OpenTofu can guarantee to make the same selections by default when
+you run "tofu init" in the future.
+
+OpenTofu has been successfully initialized!
+
+You may now begin working with OpenTofu. Try running "tofu plan" to see
+any changes that are required for your infrastructure. All OpenTofu commands
+should now work.
+
+If you ever set or change modules or backend configuration for OpenTofu,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+$ 
+```
+You can then run `tofu plan` to see what OpenTofu will do if you apply this configuration. Again
+you should see something like:
+
+```ignorelang
+$ tofu plan
+
+OpenTofu used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  + create
+
+OpenTofu will perform the following actions:
+
+  # oci_core_instance.example_instance will be created
+  + resource "oci_core_instance" "example_instance" {
+      + availability_domain                 = "Lguh:UK-LONDON-1-AD-3"
+      + boot_volume_id                      = (known after apply)
+      + capacity_reservation_id             = (known after apply)
+      + compartment_id                      = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+      + compute_cluster_id                  = (known after apply)
+      + dedicated_vm_host_id                = (known after apply)
+      + defined_tags                        = (known after apply)
+      + display_name                        = (known after apply)
+      + extended_metadata                   = (known after apply)
+      + fault_domain                        = (known after apply)
+      + freeform_tags                       = (known after apply)
+      + hostname_label                      = (known after apply)
+      + id                                  = (known after apply)
+      + image                               = (known after apply)
+      + instance_configuration_id           = (known after apply)
+      + ipxe_script                         = (known after apply)
+      + is_cross_numa_node                  = (known after apply)
+      + is_pv_encryption_in_transit_enabled = (known after apply)
+      + launch_mode                         = (known after apply)
+      + metadata                            = (known after apply)
+      + preserve_boot_volume                = false
+      + private_ip                          = (known after apply)
+      + public_ip                           = (known after apply)
+      + region                              = (known after apply)
+      + shape                               = "VM.Standard.E2.1.Micro"
+      + state                               = (known after apply)
+      + subnet_id                           = (known after apply)
+      + system_tags                         = (known after apply)
+      + time_created                        = (known after apply)
+      + time_maintenance_reboot_due         = (known after apply)
+
+      + create_vnic_details {
+          + assign_ipv6ip          = (known after apply)
+          + assign_public_ip       = "false"
+          + defined_tags           = (known after apply)
+          + display_name           = (known after apply)
+          + freeform_tags          = (known after apply)
+          + hostname_label         = (known after apply)
+          + nsg_ids                = (known after apply)
+          + private_ip             = (known after apply)
+          + skip_source_dest_check = (known after apply)
+          + subnet_id              = (known after apply)
+          + vlan_id                = (known after apply)
+        }
+
+      + source_details {
+          + boot_volume_size_in_gbs = (known after apply)
+          + boot_volume_vpus_per_gb = (known after apply)
+          + source_id               = "ocid1.image.oc1.uk-london-1.aaaaaaaay6agryw3wg52ruxw56zns3azgwgki3ireaugsuhmfvfnjplxsrfa"
+          + source_type             = "image"
+        }
+    }
+
+  # oci_core_subnet.example_subnet will be created
+  + resource "oci_core_subnet" "example_subnet" {
+      + availability_domain        = (known after apply)
+      + cidr_block                 = "10.0.1.0/24"
+      + compartment_id             = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+      + defined_tags               = (known after apply)
+      + dhcp_options_id            = (known after apply)
+      + display_name               = (known after apply)
+      + dns_label                  = (known after apply)
+      + freeform_tags              = (known after apply)
+      + id                         = (known after apply)
+      + ipv6cidr_block             = (known after apply)
+      + ipv6cidr_blocks            = (known after apply)
+      + ipv6virtual_router_ip      = (known after apply)
+      + prohibit_internet_ingress  = (known after apply)
+      + prohibit_public_ip_on_vnic = true
+      + route_table_id             = (known after apply)
+      + security_list_ids          = (known after apply)
+      + state                      = (known after apply)
+      + subnet_domain_name         = (known after apply)
+      + time_created               = (known after apply)
+      + vcn_id                     = (known after apply)
+      + virtual_router_ip          = (known after apply)
+      + virtual_router_mac         = (known after apply)
+    }
+
+  # oci_core_vcn.example_vcn will be created
+  + resource "oci_core_vcn" "example_vcn" {
+      + byoipv6cidr_blocks               = (known after apply)
+      + cidr_block                       = (known after apply)
+      + cidr_blocks                      = [
+          + "10.0.0.0/16",
+        ]
+      + compartment_id                   = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+      + default_dhcp_options_id          = (known after apply)
+      + default_route_table_id           = (known after apply)
+      + default_security_list_id         = (known after apply)
+      + defined_tags                     = (known after apply)
+      + display_name                     = (known after apply)
+      + dns_label                        = (known after apply)
+      + freeform_tags                    = (known after apply)
+      + id                               = (known after apply)
+      + ipv6cidr_blocks                  = (known after apply)
+      + ipv6private_cidr_blocks          = (known after apply)
+      + is_ipv6enabled                   = (known after apply)
+      + is_oracle_gua_allocation_enabled = (known after apply)
+      + state                            = (known after apply)
+      + time_created                     = (known after apply)
+      + vcn_domain_name                  = (known after apply)
+    }
+
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so OpenTofu can't guarantee to take exactly these actions if you run "tofu apply" now.
+$ 
+```
+
+(For safety, I've edited out the details of my tenancy OCID.)
+
+To actually deploy the infrastructure you run `tofu apply`:
+
+```ignorelang
+$ tofu apply
+
+OpenTofu used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  + create
+
+OpenTofu will perform the following actions:
+
+  # oci_core_instance.example_instance will be created
+  + resource "oci_core_instance" "example_instance" {
+      + availability_domain                 = "Lguh:UK-LONDON-1-AD-3"
+      + boot_volume_id                      = (known after apply)
+      + capacity_reservation_id             = (known after apply)
+      + compartment_id                      = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+      + compute_cluster_id                  = (known after apply)
+      + dedicated_vm_host_id                = (known after apply)
+      + defined_tags                        = (known after apply)
+      + display_name                        = (known after apply)
+      + extended_metadata                   = (known after apply)
+      + fault_domain                        = (known after apply)
+      + freeform_tags                       = (known after apply)
+      + hostname_label                      = (known after apply)
+      + id                                  = (known after apply)
+      + image                               = (known after apply)
+      + instance_configuration_id           = (known after apply)
+      + ipxe_script                         = (known after apply)
+      + is_cross_numa_node                  = (known after apply)
+      + is_pv_encryption_in_transit_enabled = (known after apply)
+      + launch_mode                         = (known after apply)
+      + metadata                            = (known after apply)
+      + preserve_boot_volume                = false
+      + private_ip                          = (known after apply)
+      + public_ip                           = (known after apply)
+      + region                              = (known after apply)
+      + shape                               = "VM.Standard.E2.1.Micro"
+      + state                               = (known after apply)
+      + subnet_id                           = (known after apply)
+      + system_tags                         = (known after apply)
+      + time_created                        = (known after apply)
+      + time_maintenance_reboot_due         = (known after apply)
+
+      + create_vnic_details {
+          + assign_ipv6ip          = (known after apply)
+          + assign_public_ip       = "false"
+          + defined_tags           = (known after apply)
+          + display_name           = (known after apply)
+          + freeform_tags          = (known after apply)
+          + hostname_label         = (known after apply)
+          + nsg_ids                = (known after apply)
+          + private_ip             = (known after apply)
+          + skip_source_dest_check = (known after apply)
+          + subnet_id              = (known after apply)
+          + vlan_id                = (known after apply)
+        }
+
+      + source_details {
+          + boot_volume_size_in_gbs = (known after apply)
+          + boot_volume_vpus_per_gb = (known after apply)
+          + source_id               = "ocid1.image.oc1.uk-london-1.aaaaaaaay6agryw3wg52ruxw56zns3azgwgki3ireaugsuhmfvfnjplxsrfa"
+          + source_type             = "image"
+        }
+    }
+
+  # oci_core_subnet.example_subnet will be created
+  + resource "oci_core_subnet" "example_subnet" {
+      + availability_domain        = (known after apply)
+      + cidr_block                 = "10.0.1.0/24"
+      + compartment_id             = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+      + defined_tags               = (known after apply)
+      + dhcp_options_id            = (known after apply)
+      + display_name               = (known after apply)
+      + dns_label                  = (known after apply)
+      + freeform_tags              = (known after apply)
+      + id                         = (known after apply)
+      + ipv6cidr_block             = (known after apply)
+      + ipv6cidr_blocks            = (known after apply)
+      + ipv6virtual_router_ip      = (known after apply)
+      + prohibit_internet_ingress  = (known after apply)
+      + prohibit_public_ip_on_vnic = true
+      + route_table_id             = (known after apply)
+      + security_list_ids          = (known after apply)
+      + state                      = (known after apply)
+      + subnet_domain_name         = (known after apply)
+      + time_created               = (known after apply)
+      + vcn_id                     = (known after apply)
+      + virtual_router_ip          = (known after apply)
+      + virtual_router_mac         = (known after apply)
+    }
+
+  # oci_core_vcn.example_vcn will be created
+  + resource "oci_core_vcn" "example_vcn" {
+      + byoipv6cidr_blocks               = (known after apply)
+      + cidr_block                       = (known after apply)
+      + cidr_blocks                      = [
+          + "10.0.0.0/16",
+        ]
+      + compartment_id                   = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+      + default_dhcp_options_id          = (known after apply)
+      + default_route_table_id           = (known after apply)
+      + default_security_list_id         = (known after apply)
+      + defined_tags                     = (known after apply)
+      + display_name                     = (known after apply)
+      + dns_label                        = (known after apply)
+      + freeform_tags                    = (known after apply)
+      + id                               = (known after apply)
+      + ipv6cidr_blocks                  = (known after apply)
+      + ipv6private_cidr_blocks          = (known after apply)
+      + is_ipv6enabled                   = (known after apply)
+      + is_oracle_gua_allocation_enabled = (known after apply)
+      + state                            = (known after apply)
+      + time_created                     = (known after apply)
+      + vcn_domain_name                  = (known after apply)
+    }
+
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+Do you want to perform these actions?
+  OpenTofu will perform the actions described above.
+  Only 'yes' will be accepted to approve.
+
+  Enter a value: yes
+
+oci_core_vcn.example_vcn: Creating...
+oci_core_vcn.example_vcn: Creation complete after 1s [id=ocid1.vcn.oc1.uk-london-1.<rest_of_vcn_ocid>]
+oci_core_subnet.example_subnet: Creating...
+oci_core_subnet.example_subnet: Creation complete after 1s [id=ocid1.subnet.oc1.uk-london-1.<rest_of_subnet_ocid>]
+oci_core_instance.example_instance: Creating...
+oci_core_instance.example_instance: Still creating... [10s elapsed]
+oci_core_instance.example_instance: Still creating... [20s elapsed]
+oci_core_instance.example_instance: Still creating... [30s elapsed]
+oci_core_instance.example_instance: Creation complete after 36s [id=ocid1.instance.oc1.uk-london-1.<rest_of_instance_ocid>]
+
+Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+$ 
+```
+
+If you now go to the OCI console and look in:
+
+* "Networking / Virtual Cloud Networks",
+* "Compute / Instances",
+
+you should be able to see the VCN and instance that was created. If you click on the VCN you
+should be able to see the subnet as well.
+
+One difference between AWS and OCI is that instead of having empty names, the resources that
+were created were given random names like:
+
+* vcn20240901085500,
+* subnet20240901085501,
+* instance20240901085503.
+
+Those names are not particularly descriptive in terms of telling us what those resources refer
+to! In this instance we'd probably prefer if they were called "example_vcn", "example_subnet",
+"example_instance" to match what we've called the resources in our `main.tf`. To do that we need
+to add one of:
+
+* `display_name = "example_vcn`
+* `display_name = "example_subnet`
+* `display_name = "example_instance`
+
+to the relevant resource configuration. For example:
+
+```hcl
+resource "oci_core_instance" "example_instance" {
+  display_name = "example_instance"
+  availability_domain = "Lguh:UK-LONDON-1-AD-3"
+  compartment_id = "<tenancy_ocid>"
+  shape = "VM.Standard.E2.1.Micro"
+  source_details {
+    source_id = "ocid1.image.oc1.uk-london-1.aaaaaaaay6agryw3wg52ruxw56zns3azgwgki3ireaugsuhmfvfnjplxsrfa"
+    # Oracle-Linux-8.10-2024.07.31-0 in uk-london-1
+    source_type = "image"
+  }
+  create_vnic_details {
+    subnet_id = oci_core_subnet.example_subnet.id
+    assign_public_ip = false # Shouldn't need this because prohibit_public_ip_on_vnic = true in
+                             # subnet
+  }
+  preserve_boot_volume = false
+}
+```
+Since the display_name argument for those three resources is updatable, if you make those
+changes and then run `tofu plan` you should see something like:
+
+```ignorelang
+$ tofu plan
+oci_core_vcn.example_vcn: Refreshing state... [id=ocid1.vcn.oc1.uk-london-1.<rest_of_vcn_ocid>]
+oci_core_subnet.example_subnet: Refreshing state... [id=ocid1.subnet.oc1.uk-london-1.<rest_of_subnet_ocid>]
+oci_core_instance.example_instance: Refreshing state... [id=ocid1.instance.oc1.uk-london-1.<rest_of_instance_ocid>]
+
+OpenTofu used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+OpenTofu will perform the following actions:
+
+  # oci_core_instance.example_instance will be updated in-place
+  ~ resource "oci_core_instance" "example_instance" {
+      ~ display_name         = "instance20240901085503" -> "example_instance"
+        id                   = "ocid1.instance.oc1.uk-london-1.<rest_of_instance_ocid>"
+        # (19 unchanged attributes hidden)
+
+        # (7 unchanged blocks hidden)
+    }
+
+  # oci_core_subnet.example_subnet will be updated in-place
+  ~ resource "oci_core_subnet" "example_subnet" {
+      ~ display_name               = "subnet20240901085501" -> "example_subnet"
+        id                         = "ocid1.subnet.oc1.uk-london-1.<rest_of_subnet_ocid>"
+        # (15 unchanged attributes hidden)
+    }
+
+  # oci_core_vcn.example_vcn will be updated in-place
+  ~ resource "oci_core_vcn" "example_vcn" {
+      ~ display_name             = "vcn20240901085500" -> "example_vcn"
+        id                       = "ocid1.vcn.oc1.uk-london-1.<rest_of_vcn_ocid>"
+        # (14 unchanged attributes hidden)
+    }
+
+Plan: 0 to add, 3 to change, 0 to destroy.
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so OpenTofu can't guarantee to take exactly these actions if you run "tofu apply" now.
+$ 
+```
+
+If you then run `tofu apply`, wait for it to complete, and then check the OCI console, you
+should see that Names have updated to the ones we specified.
+
+Finally, we can clean up all of these resources by simply running `tofu destroy`:
+
+```ignorelang
+$ tofu destroy
+oci_core_vcn.example_vcn: Refreshing state... [id=ocid1.vcn.oc1.uk-london-1.<rest_of_vcn_ocid>]
+oci_core_subnet.example_subnet: Refreshing state... [id=ocid1.subnet.oc1.uk-london-1.<rest_of_subnet_ocid>]
+oci_core_instance.example_instance: Refreshing state... [id=ocid1.instance.oc1.uk-london-1.<rest_of_instance_ocid>]
+
+OpenTofu used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
+  - destroy
+
+OpenTofu will perform the following actions:
+
+  # oci_core_instance.example_instance will be destroyed
+  - resource "oci_core_instance" "example_instance" {
+      - availability_domain  = "Lguh:UK-LONDON-1-AD-3" -> null
+      - boot_volume_id       = "ocid1.bootvolume.oc1.uk-london-1.<rest_of_bootvolume_ocid>" -> null
+      - compartment_id       = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>" -> null
+      - defined_tags         = {
+          - "Oracle-Tags.CreatedBy" = "default/someone@example.com"
+          - "Oracle-Tags.CreatedOn" = "2024-09-01T08:55:03.018Z"
+        } -> null
+      - display_name         = "example_instance" -> null
+      - extended_metadata    = {} -> null
+      - fault_domain         = "FAULT-DOMAIN-1" -> null
+      - freeform_tags        = {} -> null
+      - id                   = "ocid1.instance.oc1.uk-london-1.<rest_of_instance_ocid>" -> null
+      - image                = "ocid1.image.oc1.uk-london-1.aaaaaaaay6agryw3wg52ruxw56zns3azgwgki3ireaugsuhmfvfnjplxsrfa" -> null
+      - is_cross_numa_node   = false -> null
+      - launch_mode          = "PARAVIRTUALIZED" -> null
+      - metadata             = {} -> null
+      - preserve_boot_volume = false -> null
+      - private_ip           = "10.0.1.17" -> null
+      - region               = "uk-london-1" -> null
+      - shape                = "VM.Standard.E2.1.Micro" -> null
+      - state                = "RUNNING" -> null
+      - subnet_id            = "ocid1.subnet.oc1.uk-london-1.<rest_of_subnet_ocid>" -> null
+      - system_tags          = {
+          - "orcl-cloud.free-tier-retained" = "true"
+        } -> null
+      - time_created         = "2024-09-01 08:55:03.616 +0000 UTC" -> null
+
+      - agent_config {
+          - are_all_plugins_disabled = false -> null
+          - is_management_disabled   = false -> null
+          - is_monitoring_disabled   = false -> null
+        }
+
+      - availability_config {
+          - is_live_migration_preferred = false -> null
+          - recovery_action             = "RESTORE_INSTANCE" -> null
+        }
+
+      - create_vnic_details {
+          - assign_ipv6ip             = false -> null
+          - assign_private_dns_record = false -> null
+          - assign_public_ip          = "false" -> null
+          - defined_tags              = {
+              - "Oracle-Tags.CreatedBy" = "default/someone@example.com"
+              - "Oracle-Tags.CreatedOn" = "2024-09-01T08:55:03.200Z"
+            } -> null
+          - display_name              = "instance20240901085503" -> null
+          - freeform_tags             = {} -> null
+          - nsg_ids                   = [] -> null
+          - private_ip                = "10.0.1.17" -> null
+          - skip_source_dest_check    = false -> null
+          - subnet_id                 = "ocid1.subnet.oc1.uk-london-1.<rest_of_subnet_ocid>" -> null
+        }
+
+      - instance_options {
+          - are_legacy_imds_endpoints_disabled = false -> null
+        }
+
+      - launch_options {
+          - boot_volume_type                    = "PARAVIRTUALIZED" -> null
+          - firmware                            = "UEFI_64" -> null
+          - is_consistent_volume_naming_enabled = true -> null
+          - is_pv_encryption_in_transit_enabled = false -> null
+          - network_type                        = "PARAVIRTUALIZED" -> null
+          - remote_data_volume_type             = "PARAVIRTUALIZED" -> null
+        }
+
+      - shape_config {
+          - gpus                          = 0 -> null
+          - local_disks                   = 0 -> null
+          - local_disks_total_size_in_gbs = 0 -> null
+          - max_vnic_attachments          = 1 -> null
+          - memory_in_gbs                 = 1 -> null
+          - networking_bandwidth_in_gbps  = 0.47999998927116394 -> null
+          - nvmes                         = 0 -> null
+          - ocpus                         = 1 -> null
+          - processor_description         = "2.0 GHz AMD EPYC™ 7551 (Naples)" -> null
+          - vcpus                         = 2 -> null
+        }
+
+      - source_details {
+          - boot_volume_size_in_gbs = "47" -> null
+          - boot_volume_vpus_per_gb = "10" -> null
+          - source_id               = "ocid1.image.oc1.uk-london-1.aaaaaaaay6agryw3wg52ruxw56zns3azgwgki3ireaugsuhmfvfnjplxsrfa" -> null
+          - source_type             = "image" -> null
+        }
+    }
+
+  # oci_core_subnet.example_subnet will be destroyed
+  - resource "oci_core_subnet" "example_subnet" {
+      - cidr_block                 = "10.0.1.0/24" -> null
+      - compartment_id             = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>" -> null
+      - defined_tags               = {
+          - "Oracle-Tags.CreatedBy" = "default/someone@example.com"
+          - "Oracle-Tags.CreatedOn" = "2024-09-01T08:55:01.287Z"
+        } -> null
+      - dhcp_options_id            = "ocid1.dhcpoptions.oc1.uk-london-1.<rest_of_dhcpoptions_ocid>" -> null
+      - display_name               = "example_subnet" -> null
+      - freeform_tags              = {} -> null
+      - id                         = "ocid1.subnet.oc1.uk-london-1.<rest_of_subnet_ocid>" -> null
+      - ipv6cidr_blocks            = [] -> null
+      - prohibit_internet_ingress  = true -> null
+      - prohibit_public_ip_on_vnic = true -> null
+      - route_table_id             = "ocid1.routetable.oc1.uk-london-1.<rest_of_routetable_ocid>" -> null
+      - security_list_ids          = [
+          - "ocid1.securitylist.oc1.uk-london-1.<rest_of_securitylist_ocid>",
+        ] -> null
+      - state                      = "AVAILABLE" -> null
+      - time_created               = "2024-09-01 08:55:01.321 +0000 UTC" -> null
+      - vcn_id                     = "ocid1.vcn.oc1.uk-london-1.<rest_of_vcn_ocid>" -> null
+      - virtual_router_ip          = "10.0.1.1" -> null
+      - virtual_router_mac         = "00:00:17:36:D8:6F" -> null
+    }
+
+  # oci_core_vcn.example_vcn will be destroyed
+  - resource "oci_core_vcn" "example_vcn" {
+      - byoipv6cidr_blocks       = [] -> null
+      - cidr_block               = "10.0.0.0/16" -> null
+      - cidr_blocks              = [
+          - "10.0.0.0/16",
+        ] -> null
+      - compartment_id           = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>" -> null
+      - default_dhcp_options_id  = "ocid1.dhcpoptions.oc1.uk-london-1.<rest_of_dhcpoptions_ocid>" -> null
+      - default_route_table_id   = "ocid1.routetable.oc1.uk-london-1.<rest_of_routetable_ocid>" -> null
+      - default_security_list_id = "ocid1.securitylist.oc1.uk-london-1.<rest_of_securitylist_ocid>" -> null
+      - defined_tags             = {
+          - "Oracle-Tags.CreatedBy" = "default/someone@example.com"
+          - "Oracle-Tags.CreatedOn" = "2024-09-01T08:55:00.591Z"
+        } -> null
+      - display_name             = "example_vcn" -> null
+      - freeform_tags            = {} -> null
+      - id                       = "ocid1.vcn.oc1.uk-london-1.<rest_of_vcn_ocid>" -> null
+      - ipv6cidr_blocks          = [] -> null
+      - ipv6private_cidr_blocks  = [] -> null
+      - is_ipv6enabled           = false -> null
+      - state                    = "AVAILABLE" -> null
+      - time_created             = "2024-09-01 08:55:00.706 +0000 UTC" -> null
+    }
+
+Plan: 0 to add, 0 to change, 3 to destroy.
+
+Do you really want to destroy all resources?
+  OpenTofu will destroy all your managed infrastructure, as shown above.
+  There is no undo. Only 'yes' will be accepted to confirm.
+
+  Enter a value: yes
+
+oci_core_instance.example_instance: Destroying... [id=ocid1.instance.oc1.uk-london-1.<rest_of_instance_ocid>]
+oci_core_instance.example_instance: Still destroying... [id=ocid1.instance.oc1.uk-london-1.<rest_of_instance_ocid>, 10s elapsed]
+oci_core_instance.example_instance: Still destroying... [id=ocid1.instance.oc1.uk-london-1.<rest_of_instance_ocid>, 20s elapsed]
+oci_core_instance.example_instance: Still destroying... [id=ocid1.instance.oc1.uk-london-1.<rest_of_instance_ocid>, 30s elapsed]
+oci_core_instance.example_instance: Still destroying... [id=ocid1.instance.oc1.uk-london-1.<rest_of_instance_ocid>, 40s elapsed]
+oci_core_instance.example_instance: Still destroying... [id=ocid1.instance.oc1.uk-london-1.<rest_of_instance_ocid>, 50s elapsed]
+oci_core_instance.example_instance: Destruction complete after 54s
+oci_core_subnet.example_subnet: Destroying... [id=ocid1.subnet.oc1.uk-london-1.<rest_of_subnet_ocid>]
+oci_core_subnet.example_subnet: Destruction complete after 0s
+oci_core_vcn.example_vcn: Destroying... [id=ocid1.vcn.oc1.uk-london-1.<rest_of_vcn_ocid>]
+oci_core_vcn.example_vcn: Destruction complete after 1s
+
+Destroy complete! Resources: 3 destroyed.
+$ 
+```
+
+If we change our mind and decide we want this infrastructure recreated, then it's a simple case
+of running `tofu apply` again.
