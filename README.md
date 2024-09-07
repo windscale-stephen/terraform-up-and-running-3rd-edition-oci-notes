@@ -12,6 +12,7 @@ Two differences:
 * I'm planning to use [OpenTofu](https://opentofu.org/ "OpenTofu
   homepage") rather than Terraform.
 * I'm modifying the examples to work on [Oracle Cloud
-  Infrastructure (OCI)](https://www.oracle.com/cloud/) rather than AWS.
+  Infrastructure (OCI)](https://www.oracle.com/cloud/) using 
+  [Oracle Linux](https://www.oracle.com/linux/) rather than Ubuntu and AWS.
 
 Any suggestions or comments to [Stephen Butler](mailto:stephen@windscale.dev).

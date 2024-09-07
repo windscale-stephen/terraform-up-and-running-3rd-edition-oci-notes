@@ -886,6 +886,275 @@ of running `tofu apply` again.
 
 ## Deploying a Single Web Server
 
+I learned and discovered quite a lot whilst converting this example to OCI and the OCI terraform 
+provider:
+
+* Unlike the Ubuntu image in the book, the Oracle Linux 8 platform image available in 
+  OCI doesn't include `busybox` installed by default. It is however available in the [Oracle 
+  Linux 8 EPEL packages](https://yum.oracle.com/repo/OracleLinux/OL8/developer/EPEL/x86_64/index.html).
+  We therefore need to amend the cloud_init script to install busybox before we start it by 
+  adding the following lines before we run `busybox`:
+
+```shell
+dnf config-manager --enable ol8_developer_EPEL
+dnf -y install busybox
+```
+ 
+* The "VM.Standard.E2.1.Micro" instance shape has too little virtual memory available with the 
+  Oracle 8 platform image to complete the `dnf` command to install `busybox`. Thanks to 
+  this 
+  [Reddit article](https://www.reddit.com/r/oraclecloud/comments/1awuj8i/how_to_run_a_yum_install_on_a_minimal_free/)
+  for the hint for what was stopping it. I fixed this by adding the following commands to the 
+  cloud_init script, before the commands above to install `busybox`, to add an additional 2GiB of 
+  swap (using the instructions [here](https://www.cyberciti.biz/faq/linux-add-a-swap-file-howto/)
+  referenced in the Reddit article):
+
+```shell
+dd if=/dev/zero of=/swapfile1 bs=1024 count=2097152
+chown root:root /swapfile1
+chmod 600 /swapfile1
+mkswap /swapfile1
+swapon /swapfile1
+```
+
+* Since we want the instance to be able send/receive traffic from The Internet it needs to be in 
+  a [public subnet](https://docs.oracle.com/en-us/iaas/Content/Network/Concepts/overview.htm#Public),
+  the instance needs to be allocated a public IP address, and we need to add an [Internet 
+  Gateway](https://docs.oracle.com/en-us/iaas/Content/Network/Tasks/managingIGs.htm#Internet_Gateway)
+  to our VCN.
+* We need to amend the applicable route table and security list so that it allows traffic to port
+  8080 through. I decided to amend the VCN's default route table and default security list. It turns
+  out that some special magic is required to
+  [manage the VCN's default resources](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/terraformbestpractices_topic-vcndefaults.htm). 
+* The Oracle 8 platform image enables the firewall on the instance by default, so we have to 
+  amend the firewall rules to allow traffic to port 8080. We can do this in the cloud_init 
+  script, but it turns out you can't run the expected 
+  `firewall-cmd --zone=public --add-port=8080/tcp` command. I found this 
+  [KB article](https://access.redhat.com/solutions/6027301) which suggests there's a problem with
+  SELinux that prevents that command working in the cloud_init script and that the workaround is to 
+  use`firewall-offline-cmd` instead of `firewall-cmd`. I had some difficulty getting that to work 
+  until I found this [blog post](https://www.thatfinnishguy. blog/2020/10/23/oci-linux-and-opening-firewall-ports-with-bootstrap/)
+  which suggests stopping and starting the firewall around the `firewall-offline-cmd`. This leads to
+  adding the following commands after `busybox` has been started:
+
+```shell
+systemctl stop firewalld
+firewall-offline-cmd --zone=public --add-port=8080/tcp
+systemctl start firewalld
+```
+
+The complete cloud_init script becomes the following:
+```shell
+#!/bin/bash
+dd if=/dev/zero of=/swapfile1 bs=1024 count=2097152
+chown root:root /swapfile1
+chmod 600 /swapfile1
+mkswap /swapfile1
+swapon /swapfile1
+dnf config-manager --enable ol8_developer_EPEL
+dnf -y install busybox
+echo "Hello, World" > index.html
+nohup busybox httpd -f -p 8080 &
+systemctl stop firewalld
+firewall-offline-cmd --zone=public --add-port=8080/tcp
+systemctl start firewalld
+```
+
+* The OCI terraform provider looks for the cloud_init script in a slightly different fashion than 
+  the AWS provider, and it wants it [base64 encoded](https://en.wikipedia.org/wiki/Base64). I 
+  found the easiest way to achieve that was to save the script in a file and use the built-in 
+  `filebase64()` function to read in the file and convert it to base64.
+
+* Due to lack of physical RAM it can take about 15-20 minutes or so for the instance to be 
+  provisioned and busybox to be running and available. Most of that time is spent running `dnf` and
+  installing `busybox`. The VM.Standard.E2.1.Micro shapes are fine, but the platform image is
+  probably too general-purpose for them - they'd probably be fine for smaller workloads with a   
+  customized image that was tripped down to only run exactly what was needed for their intended
+  purpose and built with the smaller memory footprint in mind.
+
+I decided that I would put everything needed to build this example from scratch in the 
+`main.tf`file. There are however a couple of other options that could've been used:
+
+* Use the VCN Wizard to create the network and use the OCI console to amend the default security 
+  list.
+* The OCI team have released some 
+  [Oracle Terraform Modules](https://github.com/oracle-terraform-modules) to help with building 
+  systems using OCI. E.g:
+  * [terraform-oci-vcn](https://github.com/oracle-terraform-modules/terraform-oci-vcn).
+
+I may look at using those options at some later date.
+
+The code to configure the provider and create the VCN is the same as the previous example. In 
+order to create the Internet Gateway in the root compartment and attach it to the VCN we need to add
+the following:
+
+```hcl
+resource "oci_core_internet_gateway" "example_internet_gw" {
+  display_name = "example_internet_gw"
+  compartment_id = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+  vcn_id = oci_core_vcn.example_vcn.id
+  enabled = true
+}
+```
+
+We then need to amend routing tables so that traffic to destinations not on a subnet in the VCN 
+gets routed out of the Internet Gateway. We could create a subnet-specific route table for the 
+public subnet using an `oci_core_route_table` resource, but I decided to amend the VCN's default 
+route table and add the default route to that. To do this you use an 
+`oci_core_default_route_table` resource and you use the `manage_default_resource_id` argument to 
+specify the OCID of the VCN's default route table you want to amend:
+
+```hcl
+# "Magic" for updating the default route table and security list of the VCN from:
+# https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/terraformbestpractices_topic-vcndefaults.htm
+resource "oci_core_default_route_table" "example_vcn_default_routetable" {
+  display_name = "Default Route Table for example_vcn"
+  manage_default_resource_id = oci_core_vcn.example_vcn.default_route_table_id
+  compartment_id = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+  route_rules {
+    destination_type = "CIDR_BLOCK"
+    destination = "0.0.0.0/0"
+    network_entity_id = oci_core_internet_gateway.example_internet_gw.id
+  }
+}
+```
+
+This configuration means that any public subnet in the VCN that was using the VCN's default 
+route table will be able to send traffic to The Internet via the Internet Gateway. (It sets up 
+the default route `0.0.0.0/0` to point to the Internet Gateway.)
+
+When a VCN is created, a default security list is implicitly created, and this security list 
+will be applied to any subnets that don't explicitly use a custom one that's been created. This 
+security contains rules that allow the following:
+
+* It allows all traffic for established connections using any protocol to egress via the default
+  route.
+* Hosts from The Internet are allowed to make inbound TCP connections (protocol number 6) to hosts
+  in public subnets on TCP port 22. This allows you to use `ssh` to login to hosts with public IP
+  addresses that are provisioned in public subnets.
+* ICMP messages (protocol number 1) with type 3 (Destination Unreachable) and code 4 (Fragmentation 
+  needed and Do Not Fragment bit set) are allowed from The Internet into public subnets. These 
+  datagrams are needed for
+  [IP Path MTU Discovery](https://en.wikipedia.org/wiki/Path_MTU_Discovery)·
+* ICMP messages (protocol number 1) with type 3 (Destination Unreachable) are allowed from The 
+  Internet into public subnets which allows problems reaching destinations to be reported back.
+
+We want to still allow all this traffic, but also allow inbound TCP connections (protocol number  6)
+to hosts in public subnets on TCP port 8080 so that they can connect to the web server running on 
+our webserver. Similarly to amending the VCN's default route table, we need to use an 
+`oci_core_default_security_list` rather than the `oci_core_security_list` that we would use if 
+we were creating a new security list. This leads to the following code to amend the default security
+list for the VCN:
+
+```hcl
+# "Magic" for updating the default security list of the VCN from:
+# https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/terraformbestpractices_topic-vcndefaults.htm
+resource "oci_core_default_security_list" "example_vcn_default_securitylist" {
+  display_name = "Default Security List for example_vcn"
+  manage_default_resource_id = oci_core_vcn.example_vcn.default_security_list_id
+  compartment_id = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+  egress_security_rules {
+    stateless = false
+    destination = "0.0.0.0/0"
+    protocol = "all"
+  }
+  ingress_security_rules {
+    stateless = false
+    source = "0.0.0.0/0"
+    protocol = 6 # TCP
+    tcp_options {
+      min = 22
+      max = 22
+    }
+  }
+  ingress_security_rules {
+    stateless = false
+    source = "0.0.0.0/0"
+    protocol = 1 # ICMP
+    icmp_options {
+      type = 3
+      code = 4
+    }
+  }
+  ingress_security_rules {
+    stateless = false
+    source = "0.0.0.0/0"
+    protocol = 1 # ICMP
+    icmp_options {
+      type = 3
+    }
+  }
+  ingress_security_rules {
+    stateless = false
+    source = "0.0.0.0/0"
+    protocol = 6 # TCP
+    tcp_options {
+      min = 8080
+      max = 8080
+    }
+  }
+}
+```
+
+I added the ingress security rule to allow traffic in for TCP/8080 as the last item in the 
+`oci_core_default_security_list` resource since that's the addition to the default default 
+security list.
+
+The code to create the subnet that we're going to use for this example is a bit different from 
+the previous one. This time we want to deploy the instance in a public rather than a private 
+subnet so that we can access it from the Internet:
+
+```hcl
+resource "oci_core_subnet" "example_public_subnet" {
+  display_name = "example_public_subnet"
+  cidr_block = "10.0.0.0/24"
+  compartment_id = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+  vcn_id = oci_core_vcn.example_vcn.id
+  prohibit_internet_ingress = false
+}
+```
+
+I thought I'd use `10.0.0.0/24` for a public subnet and stick to using `10.0.1.0/24` as a 
+private subnet.
+
+Finally, we need the amended code to create the webserver instance:
+
+```hcl
+resource "oci_core_instance" "example_webserver" {
+  display_name = "example_webserver"
+  availability_domain = "Lguh:UK-LONDON-1-AD-3"
+  compartment_id = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+  shape = "VM.Standard.E2.1.Micro"
+  source_details {
+    source_id = "ocid1.image.oc1.uk-london-1.aaaaaaaay6agryw3wg52ruxw56zns3azgwgki3ireaugsuhmfvfnjplxsrfa"
+    source_type = "image"
+  }
+  create_vnic_details {
+    subnet_id = oci_core_subnet.example_public_subnet.id
+    assign_public_ip = true
+  }
+  metadata = {
+    user_data = filebase64("./user_data.sh")
+  }
+  preserve_boot_volume = false
+}
+```
+
+For convenience, the complete configuration and user data script is in 
+[02-deploying-single-server/](02-deploying-single-web-server/).
+
+Once you've amended that code to work for your tenancy, run:
+
+`tofu apply`
+
+in the directory containing `main.tf` and `user_data.sh`. Then go and make yourself a hot 
+beverage whilst you give the instance the time it needs to install `busybox`, start it up and 
+then amend its firewall rules to allow access on port `8080`.
+
+Once that's done you should be able to go to the OCI console and find the public IP 
+address for the newly created instance and then go to `http://<public-IP-address>:8080` and see 
+the expected output.
+
 ## Deploying a Configurable Web Server
 
 ## Deploying a Cluster of Web Servers
