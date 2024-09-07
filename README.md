@@ -7,12 +7,25 @@ Third Edition by Yevgeniy Brikman (O'Reilly). Copyright 2022 Yevgeniy Brikman, I
 The code examples for the book are also on GitHub at
 [https://github.com/brikis98/terraform-up-and-running-code](https://github.com/brikis98/terraform-up-and-running-code).
 
-Two differences:
+Some places you can get the book:
+
+* It's available on O'Reilly Learning at
+  [Terraform: Up and Running, 3rd Edition](https://learning.oreilly.com/library/view/terraform-up-and/9781098116736/) -
+  handy for [Oracle](www.oracle.com/) colleagues! ☺️
+* If you're in South-East England you might find physical copies, and if nothing else can always 
+  order at:
+  * [Blackwell's, Oxford Broad Street](https://theoxfordmagazine.com/venue/blackwells-bookshop-oxford-broad-street/).
+  * [Heffers, Trinity Street, Cambridge](https://www.yelp.co.uk/biz/heffers-bookshop-cambridge).
+* There's also the inevitable option of Amazon:
+  * [Amazon.co.uk](https://www.amazon.co.uk/Terraform-Running-Writing-Infrastructure-Code/dp/1098116747).
+  * [Amazon.com](https://www.amazon.com/Terraform-Running-Writing-Infrastructure-Code/dp/1098116747).
+
+Three differences:
 
 * I'm planning to use [OpenTofu](https://opentofu.org/ "OpenTofu
   homepage") rather than Terraform.
 * I'm modifying the examples to work on [Oracle Cloud
-  Infrastructure (OCI)](https://www.oracle.com/cloud/) using 
-  [Oracle Linux](https://www.oracle.com/linux/) rather than Ubuntu and AWS.
+  Infrastructure (OCI)](https://www.oracle.com/cloud/) rather than AWS.
+* I'm planning to use [Oracle Linux](https://www.oracle.com/linux/) rather than Ubuntu.
 
 Any suggestions or comments to [Stephen Butler](mailto:stephen@windscale.dev).
