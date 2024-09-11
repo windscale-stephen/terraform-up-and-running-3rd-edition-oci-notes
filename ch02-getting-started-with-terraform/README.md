@@ -924,8 +924,7 @@ swapon /swapfile1
   to our VCN.
 * We need to amend the applicable route table and security list so that it allows traffic to port
   8080 through. I decided to amend the VCN's default route table and default security list. It turns
-  out that some special magic is required to
-  [manage the VCN's default resources](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/terraformbestpractices_topic-vcndefaults.htm). 
+  out that some special magic is required to [manage the VCN's default resources](https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/terraformbestpractices_topic-vcndefaults.htm). 
 * The Oracle 8 platform image enables the firewall on the instance by default, so we have to 
   amend the firewall rules to allow traffic to port 8080. We can do this in the cloud_init 
   script, but it turns out you can't run the expected 
@@ -933,7 +932,7 @@ swapon /swapfile1
   [KB article](https://access.redhat.com/solutions/6027301) which suggests there's a problem with
   SELinux that prevents that command working in the cloud_init script and that the workaround is to 
   use`firewall-offline-cmd` instead of `firewall-cmd`. I had some difficulty getting that to work 
-  until I found this [blog post](https://www.thatfinnishguy. blog/2020/10/23/oci-linux-and-opening-firewall-ports-with-bootstrap/)
+  until I found this [blog post](https://www.thatfinnishguy/blog/2020/10/23/oci-linux-and-opening-firewall-ports-with-bootstrap/)
   which suggests stopping and starting the firewall around the `firewall-offline-cmd`. This leads to
   adding the following commands after `busybox` has been started:
 
@@ -964,16 +963,18 @@ systemctl start firewalld
   the AWS provider, and it wants it [base64 encoded](https://en.wikipedia.org/wiki/Base64). I 
   found the easiest way to achieve that was to save the script in a file and use the built-in 
   `filebase64()` function to read in the file and convert it to base64.
-
+* We don't seem to need `user_data_replace_on_change = true` in the instance configuration for the 
+  OCI provider. It seems the OCI provider automatically replaces the instance if the `user_data` 
+  field in the `metadata` argument to the `oci_core_instance` resource is changed.
 * Due to lack of physical RAM it can take about 15-20 minutes or so for the instance to be 
   provisioned and busybox to be running and available. Most of that time is spent running `dnf` and
   installing `busybox`. The VM.Standard.E2.1.Micro shapes are fine, but the platform image is
-  probably too general-purpose for them - they'd probably be fine for smaller workloads with a   
-  customized image that was tripped down to only run exactly what was needed for their intended
+  probably too general-purpose for them. They'd probably be fine for smaller workloads with a   
+  customized image that was stripped down to only run exactly what was needed for their intended
   purpose and built with the smaller memory footprint in mind.
 
-I decided that I would put everything needed to build this example from scratch in the 
-`main.tf`file. There are however a couple of other options that could've been used:
+I decided that I would put everything needed to build this example from scratch in the `main.tf` 
+file. There are however a couple of other options that could've been used:
 
 * Use the VCN Wizard to create the network and use the OCI console to amend the default security 
   list.
@@ -1005,7 +1006,7 @@ route table and add the default route to that. To do this you use an
 specify the OCID of the VCN's default route table you want to amend:
 
 ```hcl
-# "Magic" for updating the default route table and security list of the VCN from:
+# "Magic" for updating the default route table of the VCN from:
 # https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/terraformbestpractices_topic-vcndefaults.htm
 resource "oci_core_default_route_table" "example_vcn_default_routetable" {
   display_name = "Default Route Table for example_vcn"
@@ -1035,7 +1036,7 @@ security contains rules that allow the following:
 * ICMP messages (protocol number 1) with type 3 (Destination Unreachable) and code 4 (Fragmentation 
   needed and Do Not Fragment bit set) are allowed from The Internet into public subnets. These 
   datagrams are needed for
-  [IP Path MTU Discovery](https://en.wikipedia.org/wiki/Path_MTU_Discovery)·
+  [IP Path MTU Discovery](https://en.wikipedia.org/wiki/Path_MTU_Discovery).
 * ICMP messages (protocol number 1) with type 3 (Destination Unreachable) are allowed from The 
   Internet into public subnets which allows problems reaching destinations to be reported back.
 
@@ -1155,7 +1156,110 @@ Once that's done you should be able to go to the OCI console and find the public
 address for the newly created instance and then go to `http://<public-IP-address>:8080` and see 
 the expected output.
 
+Then run:
+
+`tofu destroy`
+
+to destroy it again.
+
 ## Deploying a Configurable Web Server
+
+In my OCI version of the web server code, I had:
+
+* the `8080` port number duplicated in both the default security list and the `user_data.sh` 
+  script. 
+* The tenancy OCID, being used as a compartment id, littered around the script.
+* The OL8 platform image OCID.
+
+When I was learning to program, we called these sorts of constant values
+[magic constants](https://en.wikipedia.org/wiki/Magic_number_(programming)) or magic numbers. 
+They suffer from two problems:
+
+* When you're reading through code it isn't necessarily obvious, just from seeing the value, what 
+  the meaning/purpose/use of these sorts of constant values are.
+* If you sprinkle the value throughout a program, then find you need to change it, you have to 
+  hunt through the program to find and amend all uses of that value. In pathological cases, that 
+  particular value may be used for or mean different things in different parts of the program, 
+  so doing a global search and replace would introduce defects into your program.
+
+The solution is to give the magic constant a descriptive name, and then use that name throughout 
+your program to refer to its value wherever needed. If you do have multiple constants that 
+happen to have the same value, you can give each use its own name. Then, if you do have to amend 
+the value of a constant, you only have to amend where the value is assigned to the name and the 
+changed value will automatically propagate to all the places it's used.
+
+For example, we could use the names:
+
+* `web_server_port` - to refer to the TCP port number that the web server listens on. 
+* `tenancy_id` - to refer to the tenancy OCID.
+* `ol8_8_10_2024_07_31_1_uk_london_1_image_id` to refer to the Oracle-Linux-8.10-2024.07.31-0 
+  platform image OCID in uk-london-1.
+
+Create a new file called `inputs.tf` containing the following code:
+
+```hcl
+variable "compartment_id" {
+  description = "The OCID of the compartment used to deploy resources into."
+  type        = string
+  sensitive   = true
+  default     = "ocid1.tenancy.oc1.<rest_of_tenancy_ocid>"
+}
+
+variable "web_server_port" {
+  description = "The TCP port that the web server listens on."
+  type        = number
+  default     = 8080
+}
+
+variable "ol8_8_10_2024_07_31_1_uk_london_1_image_id" {
+  description = "The OCID of the Oracle-Linux-8.10-2024.07.31-0 platform image in uk-london-1"
+  type        = string
+  default     = "ocid1.image.oc1.uk-london-1.aaaaaaaay6agryw3wg52ruxw56zns3azgwgki3ireaugsuhmfvfnjplxsrfa"
+}
+```
+
+This gives default values for compartment to deploy into the tenancy root compartment, the TCP 
+port for the web server to listen on, and the OCID of the image to use to build the instance. 
+These can overridden if desired with command line options or environment variables.
+
+Since the compartment_id might be a sensitive tenancy OCID I added `sensitive = true` to the 
+arguments so its value isn't logged.
+
+Create a new file called `outputs.tf` containing the following:
+
+```hcl
+output "example_server_public_ip" {
+  description = "The public IP address of the web server instance."
+  value = oci_core_instance.example_webserver.public_ip
+}
+```
+
+We also need to amend the code for supplying the cloud_init script so that we can use 
+interpolation to supply the port number that the web server listens on:
+
+```hcl
+  metadata = {
+    user_data = base64encode(<<-EOF
+                             #!/bin/bash
+                             dd if=/dev/zero of=/swapfile1 bs=1024 count=2097152
+                             chown root:root /swapfile1
+                             chmod 600 /swapfile1
+                             mkswap /swapfile1
+                             swapon /swapfile1
+                             dnf config-manager --enable ol8_developer_EPEL
+                             dnf -y install busybox
+                             echo "Hello, World" > index.html
+                             nohup busybox httpd -f -p ${var.web_server_port} &
+                             systemctl stop firewalld
+                             firewall-offline-cmd --zone=public --add-port=${var.web_server_port}/tcp
+                             systemctl start firewalld
+                             EOF
+                             )
+  }
+```
+
+For convenience, the complete configuration and user data script is in
+[03-deploying-configurable-web-server/](03-deploying-configurable-web-server/).
 
 ## Deploying a Cluster of Web Servers
 

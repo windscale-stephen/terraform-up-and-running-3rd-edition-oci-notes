@@ -11,7 +11,7 @@ Some places you can get the book:
 
 * It's available on O'Reilly Learning at
   [Terraform: Up and Running, 3rd Edition](https://learning.oreilly.com/library/view/terraform-up-and/9781098116736/) -
-  handy for [Oracle](www.oracle.com/) colleagues! ☺️
+  handy for [Oracle](www.oracle.com/) colleagues! :smiley:
 * If you're in South-East England you might find physical copies, and if nothing else can always 
   order at:
   * [Blackwell's, Oxford Broad Street](https://theoxfordmagazine.com/venue/blackwells-bookshop-oxford-broad-street/).
@@ -22,10 +22,12 @@ Some places you can get the book:
 
 Three differences:
 
-* I'm planning to use [OpenTofu](https://opentofu.org/ "OpenTofu
-  homepage") rather than Terraform.
+* I'm planning to use [OpenTofu](https://opentofu.org/) rather than Terraform.
 * I'm modifying the examples to work on [Oracle Cloud
   Infrastructure (OCI)](https://www.oracle.com/cloud/) rather than AWS.
 * I'm planning to use [Oracle Linux](https://www.oracle.com/linux/) rather than Ubuntu.
+
+You'll still need the book to make sense of this. I'm not planning to cover the syntax etc. just how
+you implement the examples using OCI as opposed to AWS.
 
 Any suggestions or comments to [Stephen Butler](mailto:stephen@windscale.dev).
